@@ -1,0 +1,75 @@
+This code is valid for UBUNTU server
+
+## Update Packages
+sudo apt -y update && sudo apt -y upgrade && sudo apt -y dist-upgrade  && sudo apt -y autoremove 
+
+## Setup Hostname
+hostnamectl set-hostname smtp.billdynamic.com
+
+## Create Host Record
+sudo nano /etc/hosts
+
+## Add this line
+127.0.1.1 smtp.billdynamic.com smtp
+
+## Install SendMail MTA and Mail Utilits
+sudo apt install sendmail mailutils sasl2-bin libsasl2-modules -y
+
+## Make Mail Dir if not exist
+mkdir /etc/mail
+
+## *****User Authentication*****
+
+## Create Mail Authentication Folder
+mkdir -m 700 /etc/mail/authinfo/
+
+## Update Access with Google SMTP User ID Pass
+sudo nano /etc/mail/authinfo/googleworkspace-auth
+AuthInfo: "U:root" "I:smtp@billdynamic.com" "P:SwadhiN@123"
+
+#Set permission
+chmod 700 /etc/mail/authinfo
+
+## Generate hash file using Auth File
+sudo makemap hash /etc/mail/authinfo.db < /etc/mail/authinfo/googleworkspace-auth
+
+## Regenerate DB File
+sudo makemap hash /etc/mail/access.db < /etc/mail/access
+
+## *****User Authentication*****
+
+## Backup SendMail config File
+sudo cp /etc/mail/sendmail.cf /etc/mail/sendmail_cf.backup && cp /etc/mail/sendmail.mc /etc/mail/sendmail_mc.backup
+
+## Edit and Update Config File
+sudo nano /etc/mail/sendmail.mc
+
+## Google Workspace SMTP Relay
+define(`SMART_HOST',`[smtp-relay.gmail.com]')dnl
+define(`RELAY_MAILER_ARGS', `TCP $h 587')dnl
+define(`ESMTP_MAILER_ARGS', `TCP $h 587')dnl
+define(`confAUTH_OPTIONS', `A p')dnl
+define(`confAUTH_MECHANISMS', `EXTERNAL GSSAPI DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl
+TRUST_AUTH_MECH(`EXTERNAL DIGEST-MD5 CRAM-MD5 LOGIN PLAIN')dnl
+FEATURE(`authinfo', `hash -o /etc/mail/authinfo.db')dnl
+
+## Setup Permission
+sudo chmod 666 /etc/mail/sendmail.cf
+sudo m4 /etc/mail/sendmail.mc > /etc/mail/sendmail.cf
+sudo chmod 644 /etc/mail/sendmail.cf
+
+## Rebuild SendMail
+sudo make -C /etc/mail
+
+## Restart SendMail MTA
+sudo /etc/init.d/sendmail restart
+
+## Test Mail
+/usr/sbin/sendmail -vf info@billdynamic.de test-adu1jn3yo@srv1.mail-tester.com
+From: info@billdynamic.de
+To: test-adu1jn3yo@srv1.mail-tester.com
+Subject: Google Workspace SMTP Relay Test Email
+
+This is a test message sent from Google Workspace SMTP Relay using Sendmail.
+
+## Press Clt + D to Send
